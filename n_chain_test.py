@@ -66,7 +66,7 @@ def eps_greedy_q_learning_with_table(env, num_episodes=500):
         done = False
 
         while not done:
-            if np.random.random() < eps or np.sum(q_table[s, :]):
+            if np.random.random() < eps or np.sum(q_table[s, :]) == 0:
                 a = np.random.randint(0, 2)
             else:
                 a = np.argmax(q_table[s, :])
@@ -119,5 +119,6 @@ print('\nRewards from q learning:\n{}'.format(reward_table))
 reward_table = eps_greedy_q_learning_with_table(nchain_env)
 print('\nRewards from epsilon greedy q learning:\n{}\n'.format(reward_table))
 
+print('Let\'s see which is the winning algorithm...\n')
 winning_algo = test_methods(nchain_env)
 print('\nThe winning algorithm is {}'.format(winning_algo))

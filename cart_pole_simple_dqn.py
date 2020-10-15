@@ -3,7 +3,6 @@ from tensorflow.keras.layers import InputLayer, Dense
 import numpy as np
 import gym
 import matplotlib.pylab as plt
-import multiprocessing
 
 
 # Build simple sequential model with one flat hidden layer
@@ -53,6 +52,8 @@ for i in range(num_episodes):
         r_sum += r
 
     r_avg_list.append(r_sum / 1000)
+
+model.save('models/cart_pole/cart_pole_basic_dqn')
 
 plt.plot(r_avg_list)
 plt.ylabel('Average reward per game')

@@ -1,3 +1,7 @@
+# Credits to Jacob Chapman and Mathias Lechner from Keras team for their tutorial.
+# See: https://keras.io/examples/rl/deep_q_network_breakout/
+
+import signal
 import gym
 import numpy as np
 import tensorflow as tf
@@ -12,7 +16,7 @@ epsilon = 1.0                                       # Epsilon greedy parameter (
 epsilon_min = 0.1                                   # Minimum epsilon
 epsilon_max = 1.0                                   # Maximum epsilon
 epsilon_interval = (epsilon_max - epsilon_min)      # Rate to reduce chance of random action
-batch_size = 32                                     # Size of replay buffer batch
+batch_size = 128                                     # Size of training batch coming out of replay buffer
 max_steps_per_episode = 10000
 
 # Replay buffers
@@ -30,11 +34,17 @@ frame_count = 0
 
 epsilon_random_frames = 50000           # Num frames for random observation
 epsilon_greedy_frames = 1000000.0       # Num frames for action exploration
-max_memory_length = 100000              # Max replay length (Use 100000 for 16GB Ram)
-update_after_actions = 4                # Train model after 4 actions
+max_memory_length = 300000              # Max replay length (Use 100000 for 16GB Ram, 300000 works well for 32GB)
+# max_memory_length = 262114
+update_after_actions = 8                # Train model after 4 actions
 update_target_network = 10000           # Steps to take before updating target network
 
 loss_function = keras.losses.Huber()    # Using Huber loss for stability
+
+# Allow gpu memory to be allocated on demand
+gpus = tf.config.list_physical_devices('GPU')
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
 
 # Define Q network
 num_actions = 4
@@ -48,13 +58,13 @@ env.seed(seed)
 def create_q_model():
     inputs = layers.Input(shape=(210, 160, 3,))
 
-    layer1 = layers.Conv2D(32, 8, strides=4, activation='relu')(inputs)
-    layer2 = layers.Conv2D(64, 4, strides=2, activation='relu')(layer1)
-    layer3 = layers.Conv2D(64, 3, strides=1, activation='relu')(layer2)
+    layer1 = layers.Conv2D(32, 8, strides=4, activation=tf.nn.relu)(inputs)
+    layer2 = layers.Conv2D(64, 4, strides=2, activation=tf.nn.relu)(layer1)
+    layer3 = layers.Conv2D(64, 3, strides=1, activation=tf.nn.relu)(layer2)
 
     layer4 = layers.Flatten()(layer3)
 
-    layer5 = layers.Dense(512, activation='relu')(layer4)
+    layer5 = layers.Dense(512, activation=tf.nn.relu)(layer4)
     action = layers.Dense(num_actions, activation='linear')(layer5)
 
     return keras.Model(inputs=inputs, outputs=action)
@@ -68,6 +78,15 @@ model = create_q_model()
 model_target = create_q_model()
 
 optimizer = keras.optimizers.Adam(learning_rate=0.00025, clipnorm=1.0)
+
+
+def exit_and_save_model(sig, frame):
+    print('Saving model and exiting.')
+    model.save('models/breakout/model_stage_1')
+    exit(0)
+
+
+signal.signal(signal.SIGINT, exit_and_save_model)
 
 while True:                             # Run until solved
     state = np.array(env.reset())
@@ -178,4 +197,4 @@ while True:                             # Run until solved
         print('Solved at episode {}!'.format(episode_count))
         break
 
-model.save('models/breakout/model_stage_1')
+exit_and_save_model(model)
